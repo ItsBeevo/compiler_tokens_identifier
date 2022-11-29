@@ -129,7 +129,8 @@ namespace JASON_PARSER
             "+", "-", "/", "*",
             "{", "}", "(", ")",
             "[", "]", ".", ";",
-            ",", "=" ,">", "<", "="
+            ",", "=" ,">", "<", 
+            "=","&", "|"
         };
     }
 
@@ -376,6 +377,23 @@ namespace JASON_PARSER
                     }
                 }
 
+                // bonus no . then var or . then  const
+                if (tokens[i] == ".")
+                {
+                    if (i < tokens.Count - 1)
+                    {
+                        if (TokensIdentifier.isIdentifier(tokens[i + 1]) || TokensIdentifier.isConstantNumber(tokens[i + 1]))
+                        {
+                            string str = "";
+                            str += tokens[i].ToString();
+                            str += tokens[i + 1].ToString();
+                            output.Add(str);
+                            i += 1;
+                            continue;
+                        }
+                    }
+                }
+
                 // no double operator as ** ++ -- //
                 if (Splitters.operators.Contains(tokens[i]))
                 {
@@ -386,6 +404,38 @@ namespace JASON_PARSER
                             string str = "";
                             str += tokens[i].ToString();
                             str += tokens[i+1].ToString();
+                            output.Add(str);
+                            i += 1;
+                            continue;
+                        }
+                    }
+                }
+
+                // bypass || and &&
+                if (tokens[i] == "|")
+                {
+                    if (i < tokens.Count - 1)
+                    {
+                        if (tokens[i+1] == "|")
+                        {
+                            string str = "";
+                            str += tokens[i].ToString();
+                            str += tokens[i + 1].ToString();
+                            output.Add(str);
+                            i += 1;
+                            continue;
+                        }
+                    }
+                }
+                if (tokens[i] == "&")
+                {
+                    if (i < tokens.Count - 1)
+                    {
+                        if (tokens[i + 1] == "&")
+                        {
+                            string str = "";
+                            str += tokens[i].ToString();
+                            str += tokens[i + 1].ToString();
                             output.Add(str);
                             i += 1;
                             continue;
@@ -445,22 +495,7 @@ namespace JASON_PARSER
                     }
                 }
 
-                // bonus no . then var or . then  const
-                if (tokens[i] == ".")
-                {
-                    if (i < tokens.Count - 1)
-                    {
-                        if (TokensIdentifier.isIdentifier(tokens[i+1]) || TokensIdentifier.isConstantNumber(tokens[i+1]))
-                        {
-                            string str = "";
-                            str += tokens[i].ToString();
-                            str += tokens[i + 1].ToString();
-                            output.Add(str);
-                            i += 1;
-                            continue;
-                        }
-                    }
-                }
+               
 
 
 
