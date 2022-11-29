@@ -174,9 +174,9 @@ namespace JASON_PARSER
             {"endl" , TokenEnums.endl},
             {":=" , TokenEnums.assign},
 
-            {"|" , TokenEnums.or},
+            /*{"|" , TokenEnums.or}*/
             {"||" , TokenEnums.orr},
-            {"&" , TokenEnums.and},
+            /*{"&" , TokenEnums.and}*/
             {"&&" , TokenEnums.andd},
 
             {"return" , TokenEnums.returnToken},
@@ -437,6 +437,23 @@ namespace JASON_PARSER
                             string str = "";
                             str += tokens[i].ToString();
                             str += ' '.ToString();
+                            str += tokens[i + 1].ToString();
+                            output.Add(str);
+                            i += 1;
+                            continue;
+                        }
+                    }
+                }
+
+                // bonus no . then var or . then  const
+                if (tokens[i] == ".")
+                {
+                    if (i < tokens.Count - 1)
+                    {
+                        if (TokensIdentifier.isIdentifier(tokens[i+1]) || TokensIdentifier.isConstantNumber(tokens[i+1]))
+                        {
+                            string str = "";
+                            str += tokens[i].ToString();
                             str += tokens[i + 1].ToString();
                             output.Add(str);
                             i += 1;
