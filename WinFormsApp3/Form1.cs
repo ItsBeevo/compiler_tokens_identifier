@@ -39,7 +39,6 @@ namespace JASON_PARSER
 
 
             List<string> lexemes = parser.parseSourceCode(richTextBox1.Text.ToString());
-            System.Diagnostics.Debug.WriteLine(lexemes.Count.ToString());
             List<TokenEnums> tokens = tokensIdentifier.identifyTokens(lexemes);
 
             Table.Columns.Add(dc1);
@@ -47,7 +46,6 @@ namespace JASON_PARSER
 
             for (int i = 0; i < lexemes.Count; i++)
             {
-                System.Diagnostics.Debug.WriteLine(lexemes[i].ToString());
                 DataRow dr = Table.NewRow();
                 DataRow edr = ErrorsTable.NewRow();
 
@@ -61,6 +59,7 @@ namespace JASON_PARSER
                     if (dr[1] == TokensDictionary.tokenEnumToOutput[TokenEnums.error])
                     {
                         ErrorsTable.Rows.Add(edr);
+                        continue;
                     }
                 }
                 else
@@ -68,6 +67,7 @@ namespace JASON_PARSER
                     dr[1] = TokensDictionary.tokenEnumToOutput[TokenEnums.error];
                     edr[0] = TokensDictionary.tokenEnumToOutput[TokenEnums.error];
                     ErrorsTable.Rows.Add(edr);
+                    continue;
                 }
 
               
@@ -130,7 +130,7 @@ namespace JASON_PARSER
             "{", "}", "(", ")",
             "[", "]", ".", ";",
             ",", "=" ,">", "<", 
-            "=","&", "|"
+            "=", "&", "|", "\""
         };
     }
 
@@ -151,7 +151,7 @@ namespace JASON_PARSER
         plus, minus, multipy, divide,
 
         greaterThan, lessThan, isequal,
-        comma, semicolon, dot,
+        comma, semicolon, dot, notequal,
 
         returnToken, main,
 
@@ -159,13 +159,17 @@ namespace JASON_PARSER
 
         intToken , floatToken , stringToken ,
         repeat ,elseif , endl , assign,
-        or,orr,and,andd
+        or,orr,and,andd,
+
+        doubleQuotes, constantString
     }
 
     public static class TokensDictionary
     {
         public static Dictionary<string, TokenEnums> inputToTokenEnum = new Dictionary<string, TokenEnums>
         {
+            {"\"" , TokenEnums.doubleQuotes},
+            {"<>" , TokenEnums.notequal},
             {"int" , TokenEnums.intToken},
             {"float" , TokenEnums.floatToken},
             {"string" , TokenEnums.stringToken},
@@ -239,6 +243,10 @@ namespace JASON_PARSER
 
         public static Dictionary<TokenEnums, string> tokenEnumToOutput = new Dictionary<TokenEnums, string>
         {
+            {TokenEnums.constantString, "T_constantString" },
+
+            {TokenEnums.doubleQuotes, "T_doubleQuotes" },
+            {TokenEnums.notequal, "T_notEqualOp" },
             {TokenEnums.intToken, "T_int" },
             {TokenEnums.floatToken, "T_float" },
             {TokenEnums.stringToken, "T_string" },
@@ -340,7 +348,7 @@ namespace JASON_PARSER
             {
                 if (Splitters.splitters.Contains(str[i].ToString()))
                 {
-                    output.Add(token);
+                    if (token != "") { output.Add(token); }
                     token = "";
                     output.Add(str[i].ToString());
                     continue;
@@ -350,7 +358,7 @@ namespace JASON_PARSER
                     token += str[i].ToString();
                 }
             }
-            if (token.Length > 0)
+            if (token != "")
             {
                 output.Add(token);
             }
@@ -363,6 +371,38 @@ namespace JASON_PARSER
 
             for (int i = 0; i < tokens.Count; i++)
             {
+                if (i < tokens.Count -1 && tokens[i] == "/"  && tokens[i+1] == "*")
+                {
+                    int end = i + 2;
+                    string str = "";
+
+                    bool wasClosed = false;
+                    while (end < tokens.Count - 1)
+                    {
+                        if (tokens[end] == "*" && tokens[end+1] == "/")
+                        {
+                            end += 1;
+                            wasClosed = true;
+                            break;
+                        }
+                        str += tokens[end];
+                        end += 1;
+                    }
+
+
+                    i = end;
+                    if (wasClosed)
+                    {
+                        continue;
+                    }
+
+                    string ss = "/*";
+                    ss += str;
+
+                    output.Add(ss);
+                    continue;
+                }
+
                 // bonus >= check
                 if (tokens[i] == ">")
                 {
@@ -377,19 +417,25 @@ namespace JASON_PARSER
                     }
                 }
 
-                // bonus no . then var or . then  const
+                // bonus no . then const
                 if (tokens[i] == ".")
                 {
                     if (i < tokens.Count - 1)
                     {
-                        if (TokensIdentifier.isIdentifier(tokens[i + 1]) || TokensIdentifier.isConstantNumber(tokens[i + 1]))
+                        if (TokensIdentifier.isConstantNumber(tokens[i + 1]))
                         {
-                            string str = "";
-                            str += tokens[i].ToString();
-                            str += tokens[i + 1].ToString();
-                            output.Add(str);
-                            i += 1;
-                            continue;
+                            if (i > 0)
+                            {
+                                if (!TokensIdentifier.isConstantNumber(tokens[i-1]))
+                                {
+                                    string str = "";
+                                    str += tokens[i].ToString();
+                                    str += tokens[i + 1].ToString();
+                                    output.Add(str);
+                                    i += 1;
+                                    continue;
+                                }
+                            }
                         }
                     }
                 }
@@ -411,7 +457,7 @@ namespace JASON_PARSER
                     }
                 }
 
-                // bypass || and &&
+                // bypass || and && and <>
                 if (tokens[i] == "|")
                 {
                     if (i < tokens.Count - 1)
@@ -432,6 +478,21 @@ namespace JASON_PARSER
                     if (i < tokens.Count - 1)
                     {
                         if (tokens[i + 1] == "&")
+                        {
+                            string str = "";
+                            str += tokens[i].ToString();
+                            str += tokens[i + 1].ToString();
+                            output.Add(str);
+                            i += 1;
+                            continue;
+                        }
+                    }
+                }
+                if (tokens[i] == "<")
+                {
+                    if (i < tokens.Count - 1)
+                    {
+                        if (tokens[i + 1] == ">")
                         {
                             string str = "";
                             str += tokens[i].ToString();
@@ -495,10 +556,35 @@ namespace JASON_PARSER
                     }
                 }
 
-               
+                // ************************** two pointers shit
+                // detect strings
+                if (tokens[i] == "\"")
+                {
+                    int end = i + 1;
+                    string str = "";
 
+                    bool wasClosed = false;
+                    while(end < tokens.Count)
+                    {
+                        if(tokens[end] == "\"")
+                        {
+                            wasClosed = true;
+                            break;
+                        }
+                        str += tokens[end];
+                        end += 1;
+                    }
 
-
+                    string ss = "\"";
+                    ss += str;
+                    if (wasClosed)
+                    {
+                        ss += "\"";
+                    }
+                    output.Add(ss);
+                    i = end;
+                    continue;
+                }
                 output.Add(tokens[i]);
             }
 
@@ -528,6 +614,7 @@ namespace JASON_PARSER
                     for (int k = 0; k < complexTokens.Count; k++)
                     {
                         if (Splitters.ignoreStrings.Contains(complexTokens[k])) { continue; }
+                        System.Diagnostics.Debug.WriteLine(filterString(complexTokens[k]));
                         tokens.Add(filterString(complexTokens[k]));
                     }
                 }
@@ -543,6 +630,7 @@ namespace JASON_PARSER
     {
         static Regex NumberRegex = new Regex(@"^[0-9]+(\.[0-9]*)?$");
         static Regex IdentifierRegex = new Regex(@"^[a-zA-Z][a-zA-Z0-9]*$");
+        static Regex StringRegex = new Regex("^\"[^\"]*\"$");
 
         public List<TokenEnums> identifyTokens(List<string> tokens)
         {
@@ -552,6 +640,11 @@ namespace JASON_PARSER
                 if (isReservedWord(tokens[i]))
                 {
                     output.Add(TokensDictionary.inputToTokenEnum[tokens[i]]);
+                    continue;
+                }
+                if (isString(tokens[i]))
+                {
+                    output.Add(TokenEnums.constantString);
                     continue;
                 }
                 if (isConstantNumber(tokens[i]))
@@ -583,6 +676,11 @@ namespace JASON_PARSER
         public static bool isIdentifier(string token)
         {
             return IdentifierRegex.IsMatch(token);
+        }
+
+        public static bool isString(string token)
+        {
+            return StringRegex.IsMatch(token);
         }
     }
 }
